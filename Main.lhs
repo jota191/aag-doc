@@ -38,6 +38,8 @@
 
 \subsection{Ahora ({\tt TypeFamilies, DataKinds, GADTs ...})}
 
+%include ./src/New.lhs
+
 \section{AspectAG}
 \subsection{Gram\'aticas de atributos} 
 \subsection{algunas construcciones en AspectAG}

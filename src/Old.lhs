@@ -140,7 +140,7 @@ lo cual queda demostrado al codificar, por ejemplo un calculo de
 combinadores SKI ~\cite{OlegSKI}.
 
 
-\subsection{Tipado a nivel de Tipos}
+\subsubsection{Tipado a nivel de Tipos}
 
 N\'otese que los constructores {\tt Zero} y {\tt Succ} tienen kinds
 {\tt *} y {\tt * $\rightarrow$ *}.
@@ -212,6 +212,6 @@ lista con todos los tipos distintos por ej
 
 
 
-\section{Limitaciones}
+\subsubsection{Limitaciones}
 
 TODO
