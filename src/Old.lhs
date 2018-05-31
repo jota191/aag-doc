@@ -1,10 +1,11 @@
-
 %if False
 
 > {-# LANGUAGE MultiParamTypeClasses #-}
 > {-# LANGUAGE FlexibleInstances #-}
 > {-# LANGUAGE FunctionalDependencies #-}
 > {-# LANGUAGE UndecidableInstances #-}
+> {-# LANGUAGE GADTs #-}
+
 
 %endif 
 
@@ -108,20 +109,26 @@ backtracking al resolver una instancia.
 
 Cuando tenemos una sentencia de la forma:
 
-< class (A x, B y) => C x y
+< class (A x, B x) => C x
 
-y GHC debe probar {\tt C a b}, primero se matchea la \emph{cabeza}
-{\tt C x y}, agregando las restricciones {\tt x \~ a, y ~\ b}, y
-{\bf luego} tratando de satisfacer el contexto.
+y GHC debe probar {\tt C a}, primero se matchea la \emph{cabeza}
+{\tt C x}, agregando las restricci\'on {\tt x \~ a}, y
+{\bf luego} tratando de probar el contexto. Si se falla habr\'a un error
+de compilaci\'on se abortar\'a.
 
-En particular no podemos decidir la pertenencia a una clase a partir de
-la resoluci\'on de un contexto.
+En Prolog es v\'alido:
+
+< c(X) :- a(X), b(X)
+< c(X) :- d(X), e(X)
+
+Si se trata de probar {\tt c(X)} y fallan {\tt a(X)} o {\tt b(X)},
+el int\'erprete hace \emph{bactracking} y busca probar la alternativa.
+
+En particular entonces no podemos decidir la implementaci\'on de los
+m\'etdos(TODO usar termino correcto) de una clase a partir de la
+resoluci\'on de un contexto u otro.
 Esto sigue siendo relevante cuando programamos con las t\'ecniicas modernas
 y existe una soluci\'on sistem\'atica que ilustraremos m\'as adelante [REF]
-
-\paragraph{Clausura}
-
-TODO
 
 \subsubsection{Turing Completness}
 
@@ -133,11 +140,34 @@ lo cual queda demostrado al codificar, por ejemplo un calculo de
 combinadores SKI ~\cite{OlegSKI}.
 
 
-\subsubsection{M\'etodos Formales}
+\subsection{Tipado a nivel de Tipos}
+
+N\'otese que los constructores {\tt Zero} y {\tt Succ} tienen kinds
+{\tt *} y {\tt * $\rightarrow$ *}.
+Nada impide entonces construir instancias patol\'ogicas de tipos como
+{\tt Succ Bool}, o {\tt Succ (Succ (Maybe Int))}.
+
+El lenguaje a nivel de tipos es entonces escencialmente \emph{untyped}.
+
+Una soluci\'on al problema de las instancias inv\'alidas es programar un
+predicado (una nueva typeclass) que indique cuando un tipo representa un
+natural a nivel de tipos, y requerirla como contexto cada vez que se
+quiere asegurar que solo se puedan construir instancias v\'alidas, as\'i:
+
+> class TNat a
+> instance TNat Zero
+> instance TNat n => TNat (Succ n)
+
+Por ejemplo la funci\'on add entonces puede definirse como:
+
+< class (TNat m, TNat n, TNat smn) => Add m n smn | m n -> smn where
+<   tAdd :: m -> n -> smn
+
+\subsubsection{Aplicaciones}
 
 La mayor utilidad de estas t\'ecnicas no pasa por
 realizar computaciones de prop\'osito general en nivel de tipos, sino por
-codificar chequeos de propiedades que nuestro programa debe cuplir, como
+codificar chequeos de propiedades que nuestro programa debe cumplir, como
 se hace usualmente con lenguajes de tipos dependientes aunque con algunas
 limitaciones, pero tambi\'en con algunas ventajas.
 
@@ -148,5 +178,40 @@ uso intensivo) son buenos ejemplos de la utilidad de \'este uso.
 Para ejemplificar, consideremos un cl\'asico ejemplo de tipo de datos
 dependiente: Las listas indizadas por su tama\~no.
 
-> data Vec n a where
->   
+\fbox{
+[TODO] Esto requiere GADTs, GADTs se introduce en ghc 6.8.1
+igual que FunctionalDependencies
+
+Ademas el contexto requiere Datatypecontexts que se introduce en 7.0.1
+(hay que decidir si lo usamos aca o no, no era estrictamente necesario
+igual)
+}
+
+> {-TNat n => -}
+> data Vec a n where
+>   VZ :: Vec a Zero
+>   VS :: a -> Vec a n -> Vec a (Succ n)
+
+Ejemplos:
+
+> safeHead :: (TNat n) =>  Vec a (Succ n) -> a
+> safeHead (VS a _) = a
+
+
+< <interactive>:3:10: error:
+<     - Couldn't match type 'Zero' with 'Succ n0'
+<       Expected type: Vec a (Succ n0)
+<         Actual type: Vec a Zero
+<     - In the first argument of 'safeHead', namely 'VZ'
+<       In the expression: safeHead VZ
+<       In an equation for 'it': it = safeHead VZ
+
+
+TODO Ejemplo con HList?? para ver predicados sobre tipos
+lista con todos los tipos distintos por ej
+
+
+
+\section{Limitaciones}
+
+TODO
